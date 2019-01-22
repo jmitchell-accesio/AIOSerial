@@ -1,8 +1,7 @@
 # AIOSerial
-ACCES I/O temporary Serial port driver
+How To use ACCES Serial cards in Linux
 
-There are two types of configuration instructions for the ACCES I/O
-Products' line of Serial cards.
+There are two types of configuration instructions for the ACCES I/O Products' line of Serial cards.  The first gets the ttyS devices created and configured correctly.  The second type of configuration selects between RS232, RS422 and RS485 (and is only applicable to PCI Express cards, including PCI Express Mini (mPCIe) Cards.
 
 
 
