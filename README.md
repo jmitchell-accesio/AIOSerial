@@ -72,12 +72,13 @@ The configuration of per-port serial protocol is set in the PCI Configuration re
 The PCIe UARTs on all ACCES PCIe devices (including mPCIe) have an internal assumption of 8-ports, but provide 1, 2, 4 or 8 actual UARTs to the outside world.  ACCES names these ports by letter, the first UART being "A", the second "B", the fourth "D", and the eigth named "H".
 
 The UART uses a 32-bit register at PCI Configuration address 0xB4 to hold a four-bit (one nybble) protocol configuration setting for each of the ports:
-|protocol|binary|hex|
-|:---|---:|---:|
-|RS232|0000|0
-|RS422|0001|1
-|RS485|1111|F
-
+```
+|protocol|binary| hex|
+|:-------|-----:|---:|
+| RS232  | 0000 |  0 |
+| RS422  | 0001 |  1 |
+| RS485  | 1111 |  F |
+```
 ###Configuring an 8-port card's per-port protocol
 The setpci instruction to set all 8 ports to RS232...
 ```bash
