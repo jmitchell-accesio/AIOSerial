@@ -37,7 +37,7 @@ dmesg | grep tty
 
 To get this fourth ttyS to work correctly you will need to issue a setserial command ...
 ```bash
-sudo  setserial /dev/ttyS7 port 0xe038
+setserial /dev/ttyS7 port 0xe038
 ```
 ... where "0xe038" is the address of the first (lowest I/O addressed) port plus 0x0038.  This will result in...
 ```bash
@@ -58,158 +58,50 @@ These older kernels may detect and install most ACCES PCI and PCIe serial cards,
 Resolve the fourth port issue as above, then scale up the baud_base frequency on the card by a factor of 8. This compensates for the UART chip that uses 8 times the typical, 115200, base baudrate frequency.
 
 ```bash
-sudo  setserial /dev/ttyS4 baud_base 921600
-sudo  setserial /dev/ttyS5 baud_base 921600
-sudo  setserial /dev/ttyS6 baud_base 921600
-sudo  setserial /dev/ttyS7 baud_base 921600
+setserial /dev/ttyS4 baud_base 921600
+setserial /dev/ttyS5 baud_base 921600
+setserial /dev/ttyS6 baud_base 921600
+setserial /dev/ttyS7 baud_base 921600
 ```
 
 ##Configuring the per-port protocol for RS232, RS422, or RS485 (PCIe only)
 
-Second, you will need to configure your card based on the modes you want to use. A mode would be either RS232, RS485 or RS422.  By default on boot up, every port will be in RS232 mode, so you can at least quickly check that connections work for you.
+Second, you will need to configure your card based on the modes you want to use. A mode would be either RS232, RS485 or RS422.
+The configuration of per-port serial protocol is set in the PCI Configuration registers of the UART on the card, and we can read/write this configuration using _setpci_.  
 
+The PCIe UARTs on all ACCES PCIe devices (including mPCIe) have an internal assumption of 8-ports, but provide 1, 2, 4 or 8 actual UARTs to the outside world.  ACCES names these ports by letter, the first UART being "A", the second "B", the fourth "D", and the eigth named "H".
 
-For our example I will be creating a configuration that is the following:
+The UART uses a 32-bit register at PCI Configuration address 0xB4 to hold a four-bit (one nybble) protocol configuration setting for each of the ports:
+|protocol|binary|hex|
+|:---|---:|---:|
+|RS232|0000|0
+|RS422|0001|1
+|RS485|1111|F
 
-PortA = RS-485
-PortB = RS-485
-PortC = RS-422
-PortD = RS-422
-
-You will need to set your PCIe-COM-4SM  using the setpci command and verify it with the lspci.
-
-Before you run this you will need to find out which Domain and Bus your PCIe-COM-4SM is located at
-
-```
-lspci -n | grep "494f:"
-
-> 02:00.0 0700: 494f:10d9  # <- this is a com board for vendor id 0x494f ( ACCES I/O )
-```
-
-
-Now you can just run
-
-```
-sudo setpci -v -s 02:00.0 b4.B=ff,11
-```
-
-To verify that you have set this , run the lspci as follows
-
-```
-sudo lspci -xxx -v  -s 02:00.0      
->
-> 02:00.0 Serial controller: ACCES I/O Products, Inc. Device 10d9 (prog-if 02 [16550])
->         Flags: bus master, fast devsel, latency 0, IRQ 17
->         I/O ports at e000 [size=64]
->         Memory at f7d00000 (32-bit, non-prefetchable) [size=4K]
->         Capabilities: [80] Power Management version 3
->         Capabilities: [8c] MSI: Enable- Count=1/1 Maskable- 64bit+
->         Capabilities: [9c] Vital Product Data
->         Capabilities: [a4] Vendor Specific Information: Len=28 <?>
->         Capabilities: [e0] Express Legacy Endpoint, MSI 00
->         Capabilities: [100] Advanced Error Reporting
->         Kernel driver in use: serial
-> 00: 4f 49 d9 10 07 00 10 00 00 02 00 07 10 00 00 00
-> 10: 01 e0 00 00 00 00 d0 f7 00 00 00 00 00 00 00 00
-> 20: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-> 30: 00 00 00 00 80 00 00 00 00 00 00 00 0b 01 00 00
-> 40: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-> 50: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-> 60: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-> 70: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-> 80: 01 8c c3 47 08 00 00 00 00 00 00 00 05 9c 80 00
-> 90: 00 00 00 00 00 00 00 00 00 00 00 00 03 a4 00 00
-> a0: 00 00 00 00 09 e0 28 00 60 10 00 04 71 02 00 04
-> b0: 00 00 00 00 ff 11 00 00 04 00 01 00 00 00 00 00
-> c0: 00 00 00 00 08 00 00 bf 00 02 00 00 00 00 00 00
-> d0: 00 00 00 00 00 00 00 00 84 00 00 00 18 00 00 00
-> e0: 10 00 11 00 00 80 90 05 00 00 10 00 11 3c 00 00
-> f0: 00 00 11 00 00 00 00 00 00 00 00 00 00 00 00 00
-```
-
-The values ff and 11 represent the 485 and 422 configurations as based off of the Pericom data sheet ( see page 32 ) : http://datasheet.octopart.com/PI7C9X7958ANBE-Pericom-datasheet-11898032.pdf
-
-
-# Example
-
-For cards that match the following table of cards, reference the instructions just below at [Matching Devices](#MatchingDevices)
-
-| 4 port           |  8 port             | 
-| -------------    | ------------------- | 
-| PCIe-COM-4SM     | PCIe-COM-8SM      | 
-| PCIe-COM-4SMRJ   | PCIe-COM-8SMRJ    | 
-| PCIe-COM-4SMDB   | PCIe-COM-8SMDB    | 
-| PCIe-COM485-4    | PCIe-COM485-8     | 
-| PCIe-COM422-4    | PCIe-COM422-8     | 
-| PCIe-COM232-4    | PCIe-COM232-8     | 
-| PCIe-COM232-4RJ  | PCIe-COM232-8RJ   | 
-| PCIe-COM232-4DB  | PCIe-COM232-8DB   | 
-| 104-COM232-4     | 104-COM232-8      | 
-| 104-COM-4S       | 104-COM-8S        | 
-| 104-COM-4SM      | 104-COM-8SM       | 
-| 104I-COM232-4    | 104I-COM232-8     | 
-| 104I-COM-4S      | 104I-COM-8S       | 
-| 104I-COM-4SM     | 104I-COM-8SM      | 
-| LPCI-COM232-4    | LPCI-COM232-8     | 
-| LPCI-COM-4SM     | LPCI-COM-8SM      |
-
-
-## <a name="MatchingDevices"></a>Matching Devices
-Starting with a 4port device, PCIe-com-4SM, we want to have the following configuration
-
-Port A = 422
-Port B = 485
-Port C = 485
-Port D = 422
-
-
-## First we will start with the ports A and D.  In our example we have
-found , when grepping throug the dmesg, that our TTY's for Port A
-and D are /dev/ttyS4 and /dev/ttyS7 respectively. Hence we want to put
-a "1" in the PCI configuration register for these two ports.
-
-Due to the nature of the ports being backwards ( according to sane
-people ), you have to reverse the order as in the following snippet.
-
-### Setting the Serial ports for Matching Serial Devices
+###Configuring an 8-port card's per-port protocol
+The setpci instruction to set all 8 ports to RS232...
 ```bash
-RS422=1
-RS485=f
-
-A=$RS422 
-B=$RS485
-C=$RS485
-D=$RS422
-
-sudo setpci -v -s 02:00.0 b4.B=$B$A,$D$C
-0000:02:00.0 @b4 f1 1f
+setpci -s 02:00.0 B4.L=00000000
 ```
+...this writes the Long value "0" to register 0xB4 in the PCI configuration space of the device at 02:00.0 (as found in the `dmesg | grep tty` output above).  Substitute the appropriate device identifier in your usage.
 
-This would configure PortA and PortD to be 422 and PortB and PortC to
-be 485. 
-
-
-### Setting the Serial ports for Non-matching Serial devices
-
-
+The 32-bit register holds 8 nybbles, one per port, with A being the least-significant nybble and H being the most significant.  Looking at each character in the Long value and replacing each nybble with the corresponding port name yields: `HGFEDCBA`, so...
 ```bash
-RS422=1
-RS485=f
-
-A=$RS422 
-B=$RS485
-C=$RS485
-D=$RS422
-
-sudo setpci -v -s 02:00.0 b4.B=$B$A,0$C,00,$D0
-0000:02:00.0 @b4 f1 1f
+setpci -s 02:00.0 B4.L=01F01F01
 ```
+...would configure H, E, and B for RS232; G, D, and A would be RS422, and the ports F and C would be RS485.
 
 
-# Pinout diagrams
+###Configuring a 4-port card's per-port protocol
+Configuration is much the same as for an 8-port card but for one quirk: the fourth port's register nybble is located in the location of the 8th-port, above.  Thus, for four-port PCIe serial cards the 32-bit configuration register can be thought of like `DxxxxCBA`, so...
+```bash
+setpci -s 02:00.0 B4.L=f00001f0
+```
+...would configure port D and B for RS485, Port C for RS422, and Port A for RS232.
 
-Please consult 
+Note that the configuration nybbles for unused ports should be cleared to "0"
 
-- [Pin out image for 485 mode](Pics/RS485_PortA_to_PortB.jpg )
+###Configuring a 1- or 2-port card's per-port protocol
+Proceed exactly as shown for 4- or 8-port cards, but understand that the configuration nybbles for ports C through H should be cleared to "0".  That is, the 32-bit configuration register can be thought of as `xxxxxxBA` or `xxxxxxxA`.
 
-- [Pin out image for 422 mode](Pics/RS422_FullDuplex.jpg)
+http://datasheet.octopart.com/PI7C9X7958ANBE-Pericom-datasheet-11898032.pdf
