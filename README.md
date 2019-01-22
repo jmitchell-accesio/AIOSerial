@@ -1,30 +1,61 @@
 # AIOSerial
 How To use ACCES Serial cards in Linux
 
-There are two types of configuration instructions for the ACCES I/O Products' line of Serial cards.  The first gets the ttyS devices created and configured correctly.  The second type of configuration selects between RS232, RS422 and RS485 (and is only applicable to PCI Express cards, including PCI Express Mini (mPCIe) Cards.
+There are two types of configuration instructions for the ACCES I/O Products' line of Serial cards.  The first gets the ttyS devices created and configured correctly.  The second type of configuration selects between RS232, RS422 and RS485 (and is only applicable to PCI Express (PCIe) cards, including PCI Express Mini (mPCIe) Cards.
 
+## Instructions for creating the devices (/dev/ttySn)
 
+### Kernels 4.15 and newer
+These kernels should successfully detect and install all ACCES PCI and PCIe serial cards, and should configure the created dev/ttySn correctly.  Please note that 1- and 2-port cards are creating 4 ttyS devices; please ignore the higher-numbered devices if your card doesn't include them.
 
-
-# Instructions for configuring the serial port
-
-On my system I run
-
-
+For example, an mPCIe-COM-2S installs as follows...
 ```bash
 dmesg | grep tty
+...
 > [    1.488105] 0000:02:00.0: ttyS4 at I/O 0xe000 (irq = 17, base_baud = 921600) is a ST16650
 > [    1.490770] 0000:02:00.0: ttyS5 at I/O 0xe008 (irq = 17, base_baud = 921600) is a ST16650
 > [    1.493416] 0000:02:00.0: ttyS6 at I/O 0xe010 (irq = 17, base_baud = 921600) is a ST16650
 > [    1.496069] 0000:02:00.0: ttyS7 at I/O 0xe018 (irq = 17, base_baud = 921600) is a ST16650
 ```
+... so ttyS6 and ttyS7 should be ignored.
 
-Hence, my first ttyS4 corresponds to Port A, ttyS5 corresponds to Port B ...etc.
+The ttyS devices are created in order, so ttyS4 is Port A and ttyS5 is Port B.
 
+### Kernels 3.13 through 4.13
+These kernels will successfully detect and install all ACCES PCI and PCIe serial cards, but the fourth port of four-port PCIe cards will be installed at an incorrect base address.
 
-To get this card to work correctly you will need to do two things.
+For example, For example, an mPCIe-COM-4SM installs as follows...
+```bash
+dmesg | grep tty
+...
+> [    1.488105] 0000:02:00.0: ttyS4 at I/O 0xe000 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.490770] 0000:02:00.0: ttyS5 at I/O 0xe008 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.493416] 0000:02:00.0: ttyS6 at I/O 0xe010 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.496069] 0000:02:00.0: ttyS7 at I/O 0xe018 (irq = 17, base_baud = 921600) is a ST16650
+```
+...but the I/O address of ttyS7 (0xe018) should be 0xe038, instead, so ttyS7 will not work "out of the box" in these kernels
 
-The first is to scale up the baud_base frequency on the card by a factor of 8. This compensates for the internal Pericom chip that uses 8 times the 115200 frequency that these types of UART chips typically use.
+To get this fourth ttyS to work correctly you will need to issue a setserial command ...
+```bash
+sudo  setserial /dev/ttyS7 port 0xe038
+```
+... where "0xe038" is the address of the first (lowest I/O addressed) port plus 0x0038.  This will result in...
+```bash
+dmesg | grep tty
+...
+> [    1.488105] 0000:02:00.0: ttyS4 at I/O 0xe000 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.490770] 0000:02:00.0: ttyS5 at I/O 0xe008 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.493416] 0000:02:00.0: ttyS6 at I/O 0xe010 (irq = 17, base_baud = 921600) is a ST16650
+> [    1.496069] 0000:02:00.0: ttyS7 at I/O 0xe038 (irq = 17, base_baud = 921600) is a ST16650
+```
+...which is correct.
+
+Please note these kernels will *also* install four-ports even on 1- and 2-port cards.
+
+### Kernels before 3.13
+These older kernels may detect and install most ACCES PCI and PCIe serial cards, but won't configure the baud_base correctly, won't install the fourth port of four-port PCIe cards correctly, and may not detect relatively recent product models.
+
+Resolve the fourth port issue as above, then scale up the baud_base frequency on the card by a factor of 8. This compensates for the UART chip that uses 8 times the typical, 115200, base baudrate frequency.
 
 ```bash
 sudo  setserial /dev/ttyS4 baud_base 921600
@@ -32,6 +63,8 @@ sudo  setserial /dev/ttyS5 baud_base 921600
 sudo  setserial /dev/ttyS6 baud_base 921600
 sudo  setserial /dev/ttyS7 baud_base 921600
 ```
+
+##Configuring the per-port protocol for RS232, RS422, or RS485 (PCIe only)
 
 Second, you will need to configure your card based on the modes you want to use. A mode would be either RS232, RS485 or RS422.  By default on boot up, every port will be in RS232 mode, so you can at least quickly check that connections work for you.
 
