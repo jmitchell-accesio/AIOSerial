@@ -1,12 +1,15 @@
 # AIOSerial
 How To use ACCES Serial cards in Linux
 
-There are two types of configuration instructions for the ACCES I/O Products' line of Serial cards.  The first gets the ttyS devices created and configured correctly.  The second type of configuration selects between RS232, RS422 and RS485 (and is only applicable to PCI Express (PCIe) cards, including PCI Express Mini (mPCIe) Cards.
 
-## Instructions for creating the devices (/dev/ttySn)
 
-### Kernels 4.15 and newer
-These kernels should successfully detect and install all ACCES PCI and PCIe serial cards, and should configure the created dev/ttySn correctly.  Please note that 1- and 2-port cards are creating 4 ttyS devices; please ignore the higher-numbered devices if your card doesn't include them.
+## Higher baud rate support
+
+Support for baudrates higher than 921600 for ACCES PCI COM cards was added in kernel 5.3. If you require higher baud rate support and are unable to move to kernel 5.3 please contact ACCES for support options.
+
+## Correct number of ports
+
+On some kernel versions more ports would be created than exist on the system. Depending on your distribution the patch to address this may have been backported to your kernel. The additional ports that are created can be ignored. If your design requires the correct number of ports please contact ACCES support.
 
 For example, an mPCIe-COM-2S installs as follows...
 ```bash
@@ -21,8 +24,10 @@ dmesg | grep tty
 
 The ttyS devices are created in order, so ttyS4 is Port A and ttyS5 is Port B.
 
-### Kernels 3.13 through 4.13
-These kernels will successfully detect and install all ACCES PCI and PCIe serial cards, but the fourth port of four-port PCIe cards will be installed at an incorrect base address.
+## Fourth port at wrong address.
+### This issue only affects four port cards
+
+On some kernel versions the fourth port of a four port ACCES PCI COM card will be set to the wrong address. Depending on your distribution the patch to address this may have been backported to your kernel.
 
 For example, For example, an mPCIe-COM-4SM installs as follows...
 ```bash
@@ -33,9 +38,9 @@ dmesg | grep tty
 > [    1.493416] 0000:02:00.0: ttyS6 at I/O 0xe010 (irq = 17, base_baud = 921600) is a ST16650
 > [    1.496069] 0000:02:00.0: ttyS7 at I/O 0xe018 (irq = 17, base_baud = 921600) is a ST16650
 ```
-...but the I/O address of ttyS7 (0xe018) should be 0xe038, instead, so ttyS7 will not work "out of the box" in these kernels
+...but the I/O address of ttyS7 is 0xe038, so ttyS7 will not work "out of the box" in these kernels
 
-To get this fourth ttyS to work correctly you will need to issue a setserial command ...
+To get the fourth ttyS to work correctly you will need to issue a setserial command ...
 ```bash
 setserial /dev/ttyS7 port 0xe038
 ```
@@ -50,21 +55,7 @@ dmesg | grep tty
 ```
 ...which is correct.
 
-Please note these kernels will *also* install four-ports even on 1- and 2-port cards.
-
-### Kernels before 3.13
-These older kernels may detect and install most ACCES PCI and PCIe serial cards, but won't configure the baud_base correctly, won't install the fourth port of four-port PCIe cards correctly, and may not detect relatively recent product models.
-
-Resolve the fourth port issue as above, then scale up the baud_base frequency on the card by a factor of 8. This compensates for the UART chip that uses 8 times the typical, 115200, base baudrate frequency.
-
-```bash
-setserial /dev/ttyS4 baud_base 921600
-setserial /dev/ttyS5 baud_base 921600
-setserial /dev/ttyS6 baud_base 921600
-setserial /dev/ttyS7 baud_base 921600
-```
-
-##Configuring the per-port protocol for RS232, RS422, or RS485 (PCIe only)
+## Configuring the per-port protocol for RS232, RS422, or RS485 (PCIe only)
 
 Second, you will need to configure your card based on the modes you want to use. A mode would be either RS232, RS485 or RS422.
 The configuration of per-port serial protocol is set in the PCI Configuration registers of the UART on the card, and we can read/write this configuration using _setpci_.  

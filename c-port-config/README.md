@@ -1,0 +1,1 @@
+This program was written to demonstrate changing the per port protocol of an ACCES PCI COM card entirely in c.
