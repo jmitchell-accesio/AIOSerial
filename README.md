@@ -3,6 +3,11 @@ How To use ACCES Serial cards in Linux
 
 
 
+## If you have any of the following cards and your kernel doesn't detect it please follow the instructions in the XR directory on how to compile and use the MaxLinear driver.
+
+   P104-COM232-8
+ 
+
 ## Higher baud rate support
 
 Support for baudrates higher than 921600 for ACCES PCI COM cards was added in kernel 5.3. If you require higher baud rate support and are unable to move to kernel 5.3 please contact ACCES for support options.
