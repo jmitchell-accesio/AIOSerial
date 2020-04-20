@@ -1,4 +1,4 @@
-﻿# AIOSerial
+# AIOSerial
 
 ## How To use ACCES Serial cards in Linux
 
@@ -73,7 +73,7 @@ The UART uses a 32-bit register at PCI Configuration address 0xB4 to hold a four
 | RS422  | 0001 |  1 |
 | RS485  | 1111 |  F |
 ```
-###Configuring an 8-port card's per-port protocol
+### Configuring an 8-port card's per-port protocol
 
 The setpci instruction to set all 8 ports to RS232...
 ```bash
@@ -87,7 +87,7 @@ setpci -s 02:00.0 B4.L=01F01F01
 ```
 ...would configure H, E, and B for RS232; G, D, and A would be RS422, and the ports F and C would be RS485.
 
-###Configuring a 4-port card's per-port protocol
+### Configuring a 4-port card's per-port protocol
 
 Configuration is much the same as for an 8-port card but for one quirk: the fourth port's register nybble is located in the location of the 8th-port, above.  Thus, for four-port PCIe serial cards the 32-bit configuration register can be thought of like `DxxxxCBA`, so...
 ```bash
@@ -97,7 +97,7 @@ setpci -s 02:00.0 B4.L=f00001f0
 
 Note that the configuration nybbles for unused ports should be cleared to "0"
 
-###Configuring a 1- or 2-port card's per-port protocol
+### Configuring a 1- or 2-port card's per-port protocol
 
 Proceed exactly as shown for 4- or 8-port cards, but understand that the configuration nybbles for ports C through H should be cleared to "0".  That is, the 32-bit configuration register can be thought of as `xxxxxxBA` or `xxxxxxxA`.
 
